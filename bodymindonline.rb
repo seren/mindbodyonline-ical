@@ -2,6 +2,7 @@ require 'nokogiri'
 require 'mechanize'
 require 'icalendar'
 require 'sinatra'
+require 'redis'
 
 
 # Converts "1 hour & 15 minutes" and "2 hours" style time into seconds
@@ -17,6 +18,7 @@ end
 
 # Config sinatra port
 set :port, 19494
+before { content_type 'text/calendar' }
 
 # Give univited visitors a blank page
 get '/' do
@@ -42,6 +44,19 @@ get '/bodymindonline' do
   # 
   if studio_id.nil? || studio_id.empty? || studio_id != "4095"
     "Nope"
+  else
+
+#  redis = Redis.new
+#  if redis[studio_id]
+#    send_file redis[studio_id], :type => 'text/calendar'
+#  else
+  cache_dir = ("/tmp/cache")
+  cache_file = File.join(cache_dir,studio_id)
+  Dir.mkdir(cache_dir) unless File.exists?(cache_dir)
+  if File.exist?(cache_file) && (File.mtime(cache_file) > (Time.now - 3600*6))
+    puts "cache hit"
+    File.read(cache_file)
+    #send_file cache_file, :type => 'text/calendar'
   else
 
   # The urls we need to hit
@@ -142,8 +157,18 @@ get '/bodymindonline' do
     event.uid = v["uid"]
   end
 
+#  # Cache the result in redis
+#  redis[studio_id] = cal.to_ical
+#  redis.expire(studio_id, 3600*6)
+
+  data = cal.to_ical
+  File.open(cache_file,"w"){ |f| f << data }
+
   # Output the ical calendar
+  #send_file cal.to_ical, :type => 'text/calendar'
   cal.to_ical
   end
 
 end
+end
+

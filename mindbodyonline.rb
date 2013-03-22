@@ -2,7 +2,6 @@ require 'nokogiri'
 require 'mechanize'
 require 'icalendar'
 require 'sinatra'
-require 'redis'
 
 
 # Converts "1 hour & 15 minutes" and "2 hours" style time into seconds

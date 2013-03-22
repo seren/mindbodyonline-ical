@@ -100,19 +100,19 @@ get '/bodymindonline' do
         # Get rid of weird characters that are in the cell text
         yoga_class.each { |k,v| v.gsub!(/[^a-zA-Z0-9:;\-_#\@\(\)]/," ") }
         yoga_class.each { |k,v| v.strip! }
-        trainer = yoga_class["trainerNameHeader"]
-        class_name = yoga_class["classNameHeader"]
-        location = yoga_class["locationNameHeader"]
-        start_time = yoga_class["startTimeHeader"]
+        yoga_class['trainer'] = trainer = yoga_class["trainerNameHeader"]
+        yoga_class['class_name'] = class_name = yoga_class["classNameHeader"]
+        yoga_class['location'] = location = yoga_class["locationNameHeader"]
+        yoga_class['start_time'] = start_time = yoga_class["startTimeHeader"]
         # Combine the date and class time
-        class_time = Time.parse(day_text+" "+start_time)
+        yoga_class['start_date'] = start_date = Time.parse(day_text+" "+start_time)
         # Add the duration seconds to get the end time
-        yoga_class["end_time"] = class_time + convert_string_to_seconds(yoga_class["durationHeader"])
+        yoga_class["end_date"] = start_date + convert_string_to_seconds(yoga_class["durationHeader"])
         # Make a uid that won't change unless the class info changes
-        yoga_class["uid"] = class_time.strftime("%Y%m%dT%H%M%S")+class_name.gsub(/[^\w]/,'')+trainer.gsub(/[^\w]/,'')
+        uid = start_date.strftime("%Y%m%dT%H%M%S")+class_name.gsub(/[^\w]/,'')+trainer.gsub(/[^\w]/,'')
         yoga_class["description"] = "#{class_name} @ #{start_time}, #{trainer.empty? ? "" : "with "+trainer} at the #{location.empty? ? "" : "at the "+location+" location"}."
         # Add the class hash to the aggregate hash
-        @all_yoga_classes[class_time] = yoga_class
+        @all_yoga_classes[uid] = yoga_class
       end
     end
   end
@@ -145,15 +145,15 @@ get '/bodymindonline' do
   now = Time.parse("2013-01-01").strftime("%Y%m%dT%H%M%S")
   @all_yoga_classes.each do |k,v|
     event = cal.event
-    event.start = k.strftime("%Y%m%dT%H%M%S")
-    event.end = v["end_time"].strftime("%Y%m%dT%H%M%S")
-    event.summary = v["classNameHeader"]
+    event.start = v['start_date'].strftime("%Y%m%dT%H%M%S")
+    event.end = v["end_date"].strftime("%Y%m%dT%H%M%S")
+    event.summary = v["classNameHeader"] + (v["trainer"].empty? ? "" : " ("+v["trainer"]+")")
     event.description = v["description"]
     event.location = v["locationNameHeader"]
     event.klass = "PUBLIC"
     event.created = now
     event.last_modified = now
-    event.uid = v["uid"]
+    event.uid = k
   end
 
 #  # Cache the result in redis

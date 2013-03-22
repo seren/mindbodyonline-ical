@@ -31,7 +31,7 @@ end
 
 
 # The actual URI to use
-get '/bodymindonline' do
+get '/mindbodyonline' do
 
   # Get the studio "id" parameter.
   begin

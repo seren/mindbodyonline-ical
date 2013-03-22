@@ -1,0 +1,149 @@
+require 'nokogiri'
+require 'mechanize'
+require 'icalendar'
+require 'sinatra'
+
+
+# Converts "1 hour & 15 minutes" and "2 hours" style time into seconds
+def convert_string_to_seconds(str)
+  duration_string = str.gsub(/hours?/,'3600').gsub(/minutes?/,'60')
+  duration_string_array = duration_string.gsub(/[^\w]/," ").split(" ")
+  duration_int_array = duration_string_array.map{ |x| x.to_i }
+  duration_int_pairs = duration_int_array.each_slice(2).to_a
+  duration_seconds = duration_int_pairs.reduce(0) { |sum,x| sum + (x[0] * x[1]) }
+  return duration_seconds
+end
+
+
+# Config sinatra port
+set :port, 19494
+
+# Give univited visitors a blank page
+get '/' do
+
+end
+
+#get '/robots.txt' do
+#  User-agent:*
+#  Disallow: /yogatimes
+#end
+
+
+# The actual URI to use
+get '/bodymindonline' do
+
+  # Get the studio "id" parameter.
+  begin
+    studio_id = params["studio_id"].gsub(/[\D]/,'')
+  rescue
+    "Bad"
+  end
+
+  # 
+  if studio_id.nil? || studio_id.empty? || studio_id != "4095"
+    "Nope"
+  else
+
+  # The urls we need to hit
+  url_base = "https://clients.mindbodyonline.com"
+  url1 = url_base + "/ws.asp?studioid=" + studio_id + "&stype=-7&sView=week&sLoc=0"
+  url2 = url_base + "/ASP/home.asp?studioid=" + studio_id
+
+  # Pretend to be Safari and grab the frame url with the schedule table
+  a = Mechanize.new
+  a.user_agent_alias = 'Mac Safari'
+  a.get(url1)
+  page = a.get(url2)
+  frame_url = page.frame_with(:name => "mainFrame").href
+  html = a.get(url_base+"/ASP/"+frame_url).body
+
+  # We could probably do our processing with mechanize as well  
+  data = Nokogiri::HTML(html)
+  header = data.css('tr[class="floatingHeaderRow"]')
+  total_columns = data.css('tr[class="floatingHeaderRow"] th').count
+  all_rows = data.css('table#classSchedule-mainTable tr')
+
+  # Get the column titles
+  column_names = header.css('th').map { |e| e.attribute('id').value }
+
+
+  # We have to initialize day_text
+  day_text = ""
+  @all_yoga_classes = {}
+
+  # Run through the rows, grabbing the day info and the class info
+  all_rows.each do |r|
+    # If there's only one td with the header class, it's a day row
+    if r.css('td[class="header"]').count == 1
+      day_text = r.css('td[class="header"]').text
+    else
+      # Do a sanity check to make sure this row has the same number of columns as our header row
+      if r.css('td').count == total_columns
+        # Get an array of text from the cells
+        values = r.css('td').map { |v| v.text }
+        # Merge the cell text into a hash with the column headers as keys
+        yoga_class = Hash[*column_names.zip(values).flatten]
+        # Get rid of weird characters that are in the cell text
+        yoga_class.each { |k,v| v.gsub!(/[^a-zA-Z0-9:;\-_#\@\(\)]/," ") }
+        yoga_class.each { |k,v| v.strip! }
+        trainer = yoga_class["trainerNameHeader"]
+        class_name = yoga_class["classNameHeader"]
+        location = yoga_class["locationNameHeader"]
+        start_time = yoga_class["startTimeHeader"]
+        # Combine the date and class time
+        class_time = Time.parse(day_text+" "+start_time)
+        # Add the duration seconds to get the end time
+        yoga_class["end_time"] = class_time + convert_string_to_seconds(yoga_class["durationHeader"])
+        # Make a uid that won't change unless the class info changes
+        yoga_class["uid"] = class_time.strftime("%Y%m%dT%H%M%S")+class_name.gsub(/[^\w]/,'')+trainer.gsub(/[^\w]/,'')
+        yoga_class["description"] = "#{class_name} @ #{start_time}, #{trainer.empty? ? "" : "with "+trainer} at the #{location.empty? ? "" : "at the "+location+" location"}."
+        # Add the class hash to the aggregate hash
+        @all_yoga_classes[class_time] = yoga_class
+      end
+    end
+  end
+
+
+  # Create a calendar to contain all the class eventesAdd ical objects
+  cal = Icalendar::Calendar.new
+
+  # Set the timezone to Pacific
+  cal.timezone do
+      timezone_id             "America/Los_Angeles"
+      x_lic_location "America/Los_Angeles"
+      daylight do
+          timezone_offset_from  "-0800"
+          timezone_offset_to    "-0700"
+          timezone_name         "PDT"
+          dtstart               "19700308TO20000"
+          add_recurrence_rule   "FREQ=YEARLY;BYMONTH=3;BYDAY=2SU"
+      end
+      standard do
+          timezone_offset_from  "-0700"
+          timezone_offset_to    "-0800"
+          timezone_name         "PST"
+          dtstart               "19701101T020000"
+          add_recurrence_rule   "FREQ=YEARLY;BYMONTH=11;BYDAY=1SU"
+      end
+  end
+
+  # Use a generic created date since we don't know
+  now = Time.parse("2013-01-01").strftime("%Y%m%dT%H%M%S")
+  @all_yoga_classes.each do |k,v|
+    event = cal.event
+    event.start = k.strftime("%Y%m%dT%H%M%S")
+    event.end = v["end_time"].strftime("%Y%m%dT%H%M%S")
+    event.summary = v["classNameHeader"]
+    event.description = v["description"]
+    event.location = v["locationNameHeader"]
+    event.klass = "PUBLIC"
+    event.created = now
+    event.last_modified = now
+    event.uid = v["uid"]
+  end
+
+  # Output the ical calendar
+  cal.to_ical
+  end
+
+end

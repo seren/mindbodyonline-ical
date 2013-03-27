@@ -64,7 +64,7 @@ get '/mindbodyonline' do
     File.read(cache_file)
     #send_file cache_file, :type => 'text/calendar'
   else
-
+  puts "cache miss"
   # The urls we need to hit
   url_base = "https://clients.mindbodyonline.com"
   url1 = url_base + "/ws.asp?studioid=" + studio_id + "&stype=-7&sView=week&sLoc=0"

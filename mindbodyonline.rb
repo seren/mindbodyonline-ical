@@ -110,6 +110,7 @@ get '/mindbodyonline' do
         yoga_class['trainer'] = trainer = yoga_class["trainerNameHeader"]
         yoga_class['class_name'] = class_name = yoga_class["classNameHeader"]
         yoga_class['location'] = location = yoga_class["locationNameHeader"]
+        yoga_class['room'] = room = yoga_class["resourceNameHeader"]
         yoga_class['start_time'] = start_time = yoga_class["startTimeHeader"]
         # Combine the date and class time
         yoga_class['start_date'] = start_date = Time.parse(day_text+" "+start_time)
@@ -117,7 +118,7 @@ get '/mindbodyonline' do
         yoga_class["end_date"] = start_date + convert_string_to_seconds(yoga_class["durationHeader"])
         # Make a uid that won't change unless the class info changes
         uid = start_date.strftime("%Y%m%dT%H%M%S")+class_name.gsub(/[^\w]/,'')+trainer.gsub(/[^\w]/,'')
-        yoga_class["description"] = "#{class_name} @ #{start_time}, #{trainer.empty? ? "" : "with "+trainer} at the #{location.empty? ? "" : "at the "+location+" location"}."
+        yoga_class["description"] = "#{class_name} @ #{start_time},#{trainer.empty? ? "" : " with "+trainer}#{location.empty? ? "" : " at the "+location+" location"}#{room.empty? ? "" : " in the "+room}. #{url2}"
         # Add the class hash to the aggregate hash
         @all_yoga_classes[uid] = yoga_class
       end

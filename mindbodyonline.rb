@@ -155,7 +155,8 @@ get '/mindbodyonline' do
     event = cal.event
     event.start = v['start_date'].strftime("%Y%m%dT%H%M%S")
     event.end = v["end_date"].strftime("%Y%m%dT%H%M%S")
-    event.summary = v["classNameHeader"] + (v["trainer"].empty? ? "" : " ("+v["trainer"]+")")
+    event.summary = v["classNameHeader"]
+#    event.summary = v["classNameHeader"] + (v["trainer"].empty? ? "" : " ("+v["trainer"]+")")
     event.description = v["description"]
     event.location = v["locationNameHeader"]
     event.klass = "PUBLIC"

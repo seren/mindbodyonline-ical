@@ -6,12 +6,19 @@ require 'sinatra'
 
 # Converts "1 hour & 15 minutes" and "2 hours" style time into seconds
 def convert_string_to_seconds(str)
-  duration_string = str.gsub(/hours?/,'3600').gsub(/minutes?/,'60')
-  duration_string_array = duration_string.gsub(/[^\w]/," ").split(" ")
-  duration_int_array = duration_string_array.map{ |x| x.to_i }
-  duration_int_pairs = duration_int_array.each_slice(2).to_a
-  duration_seconds = duration_int_pairs.reduce(0) { |sum,x| sum + (x[0] * x[1]) }
-  return duration_seconds
+  # #"1 hour & 15 minutes""
+  # duration_string = str.gsub(/hours?/,'3600').gsub(/minutes?/,'60')
+  # #"1 3600 & 15 60"
+  # duration_string_array = duration_string.gsub(/[^\w]/," ").split(" ")
+  # #["1", "3600", "15", "60"]
+  # duration_int_array = duration_string_array.map{ |x| x.to_i }
+  # #[1, 3600, 15, 60]
+  # duration_int_pairs = duration_int_array.each_slice(2).to_a
+  # #[[1, 3600], [15, 60]]
+  # duration_seconds = duration_int_pairs.reduce(0) { |sum,x| sum + (x[0] * x[1]) }
+  # #4500
+  # return duration_seconds
+  return str.gsub(/hours?/,'3600').gsub(/minutes?/,'60').gsub(/[^\w]/," ").split(" ").map{ |x| x.to_i }.each_slice(2).to_a.reduce(0) { |sum,x| sum + (x[0] * x[1]) }
 end
 
 

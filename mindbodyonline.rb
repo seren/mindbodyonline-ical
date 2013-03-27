@@ -64,119 +64,119 @@ get '/mindbodyonline' do
     File.read(cache_file)
     #send_file cache_file, :type => 'text/calendar'
   else
-  puts "cache miss"
-  # The urls we need to hit
-  url_base = "https://clients.mindbodyonline.com"
-  url1 = url_base + "/ws.asp?studioid=" + studio_id + "&stype=-7&sView=week&sLoc=0"
-  url2 = url_base + "/ASP/home.asp?studioid=" + studio_id
+    puts "cache miss"
+    # The urls we need to hit
+    url_base = "https://clients.mindbodyonline.com"
+    url1 = url_base + "/ws.asp?studioid=" + studio_id + "&stype=-7&sView=week&sLoc=0"
+    url2 = url_base + "/ASP/home.asp?studioid=" + studio_id
 
-  # Pretend to be Safari and grab the frame url with the schedule table
-  a = Mechanize.new
-  a.user_agent_alias = 'Mac Safari'
-  a.get(url1)
-  page = a.get(url2)
-  frame_url = page.frame_with(:name => "mainFrame").href
-  html = a.get(url_base+"/ASP/"+frame_url).body
+    # Pretend to be Safari and grab the frame url with the schedule table
+    a = Mechanize.new
+    a.user_agent_alias = 'Mac Safari'
+    a.get(url1)
+    page = a.get(url2)
+    frame_url = page.frame_with(:name => "mainFrame").href
+    html = a.get(url_base+"/ASP/"+frame_url).body
 
-  # We could probably do our processing with mechanize as well  
-  data = Nokogiri::HTML(html)
-  header = data.css('tr[class="floatingHeaderRow"]')
-  total_columns = data.css('tr[class="floatingHeaderRow"] th').count
-  all_rows = data.css('table#classSchedule-mainTable tr')
+    # We could probably do our processing with mechanize as well  
+    data = Nokogiri::HTML(html)
+    header = data.css('tr[class="floatingHeaderRow"]')
+    total_columns = data.css('tr[class="floatingHeaderRow"] th').count
+    all_rows = data.css('table#classSchedule-mainTable tr')
 
-  # Get the column titles
-  column_names = header.css('th').map { |e| e.attribute('id').value }
+    # Get the column titles
+    column_names = header.css('th').map { |e| e.attribute('id').value }
 
 
-  # We have to initialize day_text
-  day_text = ""
-  @all_yoga_classes = {}
+    # We have to initialize day_text
+    day_text = ""
+    @all_yoga_classes = {}
 
-  # Run through the rows, grabbing the day info and the class info
-  all_rows.each do |r|
-    # If there's only one td with the header class, it's a day row
-    if r.css('td[class="header"]').count == 1
-      day_text = r.css('td[class="header"]').text
-    else
-      # Do a sanity check to make sure this row has the same number of columns as our header row
-      if r.css('td').count == total_columns
-        # Get an array of text from the cells
-        values = r.css('td').map { |v| v.text }
-        # Merge the cell text into a hash with the column headers as keys
-        yoga_class = Hash[*column_names.zip(values).flatten]
-        # Get rid of weird characters that are in the cell text
-        yoga_class.each { |k,v| v.gsub!(/[^a-zA-Z0-9:;\-_#\@\(\)]/," ") }
-        yoga_class.each { |k,v| v.strip! }
-        yoga_class['trainer'] = trainer = yoga_class["trainerNameHeader"]
-        yoga_class['class_name'] = class_name = yoga_class["classNameHeader"]
-        yoga_class['location'] = location = yoga_class["locationNameHeader"]
-        yoga_class['room'] = room = yoga_class["resourceNameHeader"]
-        yoga_class['start_time'] = start_time = yoga_class["startTimeHeader"]
-        # Combine the date and class time
-        yoga_class['start_date'] = start_date = Time.parse(day_text+" "+start_time)
-        # Add the duration seconds to get the end time
-        yoga_class["end_date"] = start_date + convert_string_to_seconds(yoga_class["durationHeader"])
-        # Make a uid that won't change unless the class info changes
-        uid = start_date.strftime("%Y%m%dT%H%M%S")+class_name.gsub(/[^\w]/,'')+trainer.gsub(/[^\w]/,'')
-        yoga_class["description"] = "#{class_name} @ #{start_time},#{trainer.empty? ? "" : " with "+trainer}#{location.empty? ? "" : " at the "+location+" location"}#{room.empty? ? "" : " in the "+room}. #{url2}"
-        # Add the class hash to the aggregate hash
-        @all_yoga_classes[uid] = yoga_class
+    # Run through the rows, grabbing the day info and the class info
+    all_rows.each do |r|
+      # If there's only one td with the header class, it's a day row
+      if r.css('td[class="header"]').count == 1
+        day_text = r.css('td[class="header"]').text
+      else
+        # Do a sanity check to make sure this row has the same number of columns as our header row
+        if r.css('td').count == total_columns
+          # Get an array of text from the cells
+          values = r.css('td').map { |v| v.text }
+          # Merge the cell text into a hash with the column headers as keys
+          yoga_class = Hash[*column_names.zip(values).flatten]
+          # Get rid of weird characters that are in the cell text
+          yoga_class.each { |k,v| v.gsub!(/[^a-zA-Z0-9:;\-_#\@\(\)]/," ") }
+          yoga_class.each { |k,v| v.strip! }
+          yoga_class['trainer'] = trainer = yoga_class["trainerNameHeader"]
+          yoga_class['class_name'] = class_name = yoga_class["classNameHeader"]
+          yoga_class['location'] = location = yoga_class["locationNameHeader"]
+          yoga_class['room'] = room = yoga_class["resourceNameHeader"]
+          yoga_class['start_time'] = start_time = yoga_class["startTimeHeader"]
+          # Combine the date and class time
+          yoga_class['start_date'] = start_date = Time.parse(day_text+" "+start_time)
+          # Add the duration seconds to get the end time
+          yoga_class["end_date"] = start_date + convert_string_to_seconds(yoga_class["durationHeader"])
+          # Make a uid that won't change unless the class info changes
+          uid = start_date.strftime("%Y%m%dT%H%M%S")+class_name.gsub(/[^\w]/,'')+trainer.gsub(/[^\w]/,'')
+          yoga_class["description"] = "#{class_name} @ #{start_time},#{trainer.empty? ? "" : " with "+trainer}#{location.empty? ? "" : " at the "+location+" location"}#{room.empty? ? "" : " in the "+room}. #{url2}"
+          # Add the class hash to the aggregate hash
+          @all_yoga_classes[uid] = yoga_class
+        end
       end
     end
+
+
+    # Create a calendar to contain all the class eventesAdd ical objects
+    cal = Icalendar::Calendar.new
+
+    # Set the timezone to Pacific
+    cal.timezone do
+        timezone_id             "America/Los_Angeles"
+        x_lic_location "America/Los_Angeles"
+        daylight do
+            timezone_offset_from  "-0800"
+            timezone_offset_to    "-0700"
+            timezone_name         "PDT"
+            dtstart               "19700308TO20000"
+            add_recurrence_rule   "FREQ=YEARLY;BYMONTH=3;BYDAY=2SU"
+        end
+        standard do
+            timezone_offset_from  "-0700"
+            timezone_offset_to    "-0800"
+            timezone_name         "PST"
+            dtstart               "19701101T020000"
+            add_recurrence_rule   "FREQ=YEARLY;BYMONTH=11;BYDAY=1SU"
+        end
+    end
+
+    # Use a generic created date since we don't know
+    now = Time.parse("2013-01-01").strftime("%Y%m%dT%H%M%S")
+    @all_yoga_classes.each do |k,v|
+      event = cal.event
+      event.start = v['start_date'].strftime("%Y%m%dT%H%M%S")
+      event.end = v["end_date"].strftime("%Y%m%dT%H%M%S")
+      event.summary = v["classNameHeader"]
+  #    event.summary = v["classNameHeader"] + (v["trainer"].empty? ? "" : " ("+v["trainer"]+")")
+      event.description = v["description"]
+      event.location = v["locationNameHeader"]
+      event.klass = "PUBLIC"
+      event.created = now
+      event.last_modified = now
+      event.uid = k
+    end
+
+  #  # Cache the result in redis
+  #  redis[studio_id] = cal.to_ical
+  #  redis.expire(studio_id, 3600*6)
+
+    data = cal.to_ical
+    File.open(cache_file,"w"){ |f| f << data }
+
+    # Output the ical calendar
+    #send_file cal.to_ical, :type => 'text/calendar'
+    cal.to_ical
+    end
+
   end
-
-
-  # Create a calendar to contain all the class eventesAdd ical objects
-  cal = Icalendar::Calendar.new
-
-  # Set the timezone to Pacific
-  cal.timezone do
-      timezone_id             "America/Los_Angeles"
-      x_lic_location "America/Los_Angeles"
-      daylight do
-          timezone_offset_from  "-0800"
-          timezone_offset_to    "-0700"
-          timezone_name         "PDT"
-          dtstart               "19700308TO20000"
-          add_recurrence_rule   "FREQ=YEARLY;BYMONTH=3;BYDAY=2SU"
-      end
-      standard do
-          timezone_offset_from  "-0700"
-          timezone_offset_to    "-0800"
-          timezone_name         "PST"
-          dtstart               "19701101T020000"
-          add_recurrence_rule   "FREQ=YEARLY;BYMONTH=11;BYDAY=1SU"
-      end
-  end
-
-  # Use a generic created date since we don't know
-  now = Time.parse("2013-01-01").strftime("%Y%m%dT%H%M%S")
-  @all_yoga_classes.each do |k,v|
-    event = cal.event
-    event.start = v['start_date'].strftime("%Y%m%dT%H%M%S")
-    event.end = v["end_date"].strftime("%Y%m%dT%H%M%S")
-    event.summary = v["classNameHeader"]
-#    event.summary = v["classNameHeader"] + (v["trainer"].empty? ? "" : " ("+v["trainer"]+")")
-    event.description = v["description"]
-    event.location = v["locationNameHeader"]
-    event.klass = "PUBLIC"
-    event.created = now
-    event.last_modified = now
-    event.uid = k
-  end
-
-#  # Cache the result in redis
-#  redis[studio_id] = cal.to_ical
-#  redis.expire(studio_id, 3600*6)
-
-  data = cal.to_ical
-  File.open(cache_file,"w"){ |f| f << data }
-
-  # Output the ical calendar
-  #send_file cal.to_ical, :type => 'text/calendar'
-  cal.to_ical
-  end
-
-end
 end
 

@@ -24,6 +24,7 @@ end
 
 # Config sinatra port
 set :port, 19494
+set :server, 'webrick'
 before { content_type 'text/calendar' }
 
 # Give univited visitors a blank page

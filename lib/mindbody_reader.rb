@@ -1,7 +1,7 @@
 require 'nokogiri'
 require 'mechanize'
 
-class BodymindReader
+class MindbodyReader
 
   attr_accessor :studio_id, :current_page
 

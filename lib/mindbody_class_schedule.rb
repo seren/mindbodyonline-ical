@@ -1,7 +1,7 @@
 require 'icalendar'
 require 'json'
 
-class BodymindClassSchedule
+class MindbodyClassSchedule
 
   attr_accessor :all_yoga_classes, :studio_id
 
@@ -18,9 +18,9 @@ class BodymindClassSchedule
   def load
     if cache_out_of_date?
       puts "cache out of date"
-      bmreader = BodymindReader.new({:studio_id => studio_id})
-      @all_yoga_classes = bmreader.refresh
-      (WEEKS_TO_LOAD-1).times { @all_yoga_classes.merge!(bmreader.next_week) }
+      mbreader = MindbodyReader.new({:studio_id => studio_id})
+      @all_yoga_classes = mbreader.refresh
+      (WEEKS_TO_LOAD-1).times { @all_yoga_classes.merge!(mbreader.next_week) }
       save_cache
     else
       puts "reading cache"

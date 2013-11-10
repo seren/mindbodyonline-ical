@@ -1,11 +1,11 @@
-require_relative 'lib/bodymind_class_schedule'
-require_relative 'lib/bodymind_reader'
+require_relative 'lib/mindbody_class_schedule'
+require_relative 'lib/mindbody_reader'
 
 require 'sinatra'
 # require 'pry'
 
 # studio_id = 4095
-# bmclass = BodymindClassSchedule.new({:studio_id => studio_id})
+# bmclass = MindbodyClassSchedule.new({:studio_id => studio_id})
 # # bmclass.flush_cache
 # bmclass.load
 # # binding.pry
@@ -41,7 +41,7 @@ get '/mindbodyonline' do
   if studio_id.nil? || studio_id.empty? || studio_id != "4095"
     "Nope"
   else
-    bmclass = BodymindClassSchedule.new({:studio_id => studio_id})
+    bmclass = MindbodyClassSchedule.new({:studio_id => studio_id})
     bmclass.load
     bmclass.print_ical
   end

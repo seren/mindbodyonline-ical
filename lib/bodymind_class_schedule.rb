@@ -8,6 +8,7 @@ class BodymindClassSchedule
   CACHE_DIR = "/tmp/cache"
   CACHE_VALID_HOURS = 6
 
+  WEEKS_TO_LOAD = 2
 
   def initialize(opt={})
     @studio_id = opt[:studio_id]
@@ -20,6 +21,11 @@ class BodymindClassSchedule
       puts "cache out of date"
       bmreader = BodymindReader.new({:studio_id => studio_id})
       @temp_html, @all_yoga_classes = bmreader.refresh
+      (WEEKS_TO_LOAD-1).times do
+        h,c = bmreader.next_week
+        @temp_html += "\n\n\n\n\n\n" + h
+        @all_yoga_classes.merge!(c)
+      end
       save_cache
     else
       puts "reading cache"

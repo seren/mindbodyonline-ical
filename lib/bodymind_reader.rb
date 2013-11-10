@@ -3,7 +3,7 @@ require 'mechanize'
 
 class BodymindReader
 
-  attr_accessor :studio_id
+  attr_accessor :studio_id, :current_page
 
 
   def initialize(opt={})
@@ -21,60 +21,55 @@ class BodymindReader
 
     # Pretend to be Safari and grab the frame url with the schedule table
     a = Mechanize.new
+    # agent.set_proxy('127.0.0.1', 8888)
     a.user_agent_alias = 'Mac Safari'
     # Set cookies
     a.get(url1)
     # Get initial pages
     page2 = a.get(url2)
     frame2 = page2.frame_with(:name => "mainFrame")
-    frame2_url = frame2.href
+    frame_url = frame2.href
+
     # Get first calendar page
-    page3 = a.get(url_base+"/ASP/"+frame2_url)
-    html3 = page3.body
+    @current_page = a.get(url_base+"/ASP/"+frame_url)
+    return [body_html, generate_schedule_hash_from_current_page]
+  end
 
-    # Get the date of next week
-    r = /.*tmpDate = \"(.*)\";.*/
-    # Finds each line with tmpDate. Returns just the date from the 3rd matched line.
-    txtDate = html3.split("\n").map {|x| r.match(x) }.compact[2][1]
-
-binding.pry
-
-  page4 =  page3.form_with(:id => 'ClassScheduleSearch2Form') do |form|
-    pageNum=1
-    requiredtxtUserName=''
-    requiredtxtPassword=''
-    optForwardingLink=''
-    optRememberMe=''
-    tabID=7
-    optView='week'
-    useClassLogic=''
-    filterByClsSch=''
-    prevFilterByClsSch=-1
-    prevFilterByClsSch2=-2
-    txtDate=txtDate
-    optLocation=1
-    optVT=0
-    optInstructor=0
-end.submit
-
-
-
-# To get the next week
-# post
-#     next_date = /ASP/main_class.asp
-
-binding.pry
-
-  return [html, pull_data_from_first_page(html)]
+  def next_week
+    load_next_weeks_calendar
+    return [body_html, generate_schedule_hash_from_current_page]
   end
 
 
-  private
 
 
-  def pull_data_from_first_page(html)
+  # private
+
+  def body_html
+    @current_page.body
+  end
+
+  def next_weeks_date
+    # Get the date of next week
+    r = /.*tmpDate = \"(.*)\";.*/
+    # Finds each line with tmpDate. Returns just the date from the 3rd matched line.
+    txtDate = body_html.split("\n").map {|x| r.match(x) }.compact[2][1]
+  end
+
+  def current_date(p=@current_page)
+    p.form_with(:id => "frmLogonTop")["date"]
+  end
+
+  def load_next_weeks_calendar
+    form = @current_page.form_with(:id => 'ClassScheduleSearch2Form')
+    form.field_with(:id => 'txtDate').value = next_weeks_date
+    new_page = form.submit
+    @current_page = new_page
+  end
+
+  def generate_schedule_hash_from_current_page
     # We could probably do our processing with mechanize as well  
-    data = Nokogiri::HTML(html)
+    data = Nokogiri::HTML(body_html)
     header = data.css('tr[class="floatingHeaderRow"]')
     total_columns = data.css('tr[class="floatingHeaderRow"] th').count
     all_rows = data.css('table#classSchedule-mainTable tr')

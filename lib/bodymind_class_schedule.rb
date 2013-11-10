@@ -3,7 +3,7 @@ require 'json'
 
 class BodymindClassSchedule
 
-  attr_accessor :all_yoga_classes, :studio_id, :temp_html
+  attr_accessor :all_yoga_classes, :studio_id
 
   CACHE_DIR = "/tmp/cache"
   CACHE_VALID_HOURS = 6
@@ -13,19 +13,14 @@ class BodymindClassSchedule
   def initialize(opt={})
     @studio_id = opt[:studio_id]
     @cache_file = File.join(CACHE_DIR,studio_id.to_s)
-    @cache_file_temp_html = File.join(CACHE_DIR,"#{studio_id.to_s}_temp_html")
   end
 
   def load
     if cache_out_of_date?
       puts "cache out of date"
       bmreader = BodymindReader.new({:studio_id => studio_id})
-      @temp_html, @all_yoga_classes = bmreader.refresh
-      (WEEKS_TO_LOAD-1).times do
-        h,c = bmreader.next_week
-        @temp_html += "\n\n\n\n\n\n" + h
-        @all_yoga_classes.merge!(c)
-      end
+      @all_yoga_classes = bmreader.refresh
+      (WEEKS_TO_LOAD-1).times { @all_yoga_classes.merge!(bmreader.next_week) }
       save_cache
     else
       puts "reading cache"
@@ -47,13 +42,11 @@ class BodymindClassSchedule
       all_yoga_classes_with_integer_times[k]['end_date'] = v['end_date'].to_i
     end
     File.open(@cache_file,"w"){ |f| f << all_yoga_classes_with_integer_times.to_json }
-    File.open(@cache_file_temp_html,"w"){ |f| f << @temp_html }
   end
 
   # We convert dates back to Time objects from the integer (unix timestamp) form that we store in json
   def read_cache
     @all_yoga_classes = JSON.parse(File.read(@cache_file))
-    @temp_html = File.read(@cache_file_temp_html)
     # convert date strings to time objects
     @all_yoga_classes.each do |k,v|
       @all_yoga_classes[k]['start_date'] = Time.at(v['start_date'])
@@ -135,7 +128,6 @@ class BodymindClassSchedule
 
   def flush_cache
     File.delete(@cache_file) if File.exist?(@cache_file)
-    File.delete(@cache_file_temp_html) if File.exist?(@cache_file_temp_html)
   end
 
 end

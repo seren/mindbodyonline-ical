@@ -32,12 +32,12 @@ class BodymindReader
 
     # Get first calendar page
     @current_page = a.get(url_base+"/ASP/"+frame_url)
-    return [body_html, generate_schedule_hash_from_current_page]
+    generate_schedule_hash_from_current_page
   end
 
   def next_week
     load_next_weeks_calendar
-    return [body_html, generate_schedule_hash_from_current_page]
+    generate_schedule_hash_from_current_page
   end
 
 

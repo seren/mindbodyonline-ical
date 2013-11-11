@@ -73,15 +73,27 @@ class MindbodyReader
     header = data.css('tr[class="floatingHeaderRow"]')
     total_columns = data.css('tr[class="floatingHeaderRow"] th').count
     all_rows = data.css('table#classSchedule-mainTable tr')
+    foot_notes = data.css('div[class="foot-notes-container"]')
 
     # Get the column titles
     column_names = header.css('th').map { |e| e.attribute('id').value }
 
+    # Get any substitute teacher info in the footnotes
+    subs = {}
+    # Regex to capturen the number and name from "1) Bob Jones"
+    foot_notes_regex=/(\d*)\).(.*)/
+    if foot_notes.text =~ /^Regularly Scheduled:/
+      foot_array = foot_notes.text.split('(')
+      foot_array.delete_at(0)
+      foot_array.each do |f|
+        x=foot_notes_regex.match(f.strip)
+        subs[x[1]] = x[2]
+      end
+    end
 
     # We have to initialize day_text
     day_text = ""
     @all_yoga_classes = {}
-
     # Run through the rows, grabbing the day info and the class info
     all_rows.each do |r|
       # If there's only one td with the header class, it's a day row
@@ -93,24 +105,57 @@ class MindbodyReader
           # Get an array of text from the cells
           values = r.css('td').map { |v| v.text }
           # Merge the cell text into a hash with the column headers as keys
-          yoga_class = Hash[*column_names.zip(values).flatten]
+          page_data = Hash[*column_names.zip(values).flatten]
           # Get rid of weird characters that are in the cell text
-          yoga_class.each { |k,v| v.gsub!(/[^a-zA-Z0-9:;\-_#\@\(\)]/," ") }
-          yoga_class.each { |k,v| v.strip! }
-          yoga_class['trainer'] = trainer = yoga_class["trainerNameHeader"]
-          yoga_class['class_name'] = class_name = yoga_class["classNameHeader"]
-          yoga_class['location'] = location = yoga_class["locationNameHeader"]
-          yoga_class['room'] = room = yoga_class["resourceNameHeader"]
-          yoga_class['start_time'] = start_time = yoga_class["startTimeHeader"]
+          page_data.each { |k,v| v.gsub!(/[^a-zA-Z0-9:;\-_#\@\(\)]/," ") }
+          page_data.each { |k,v| v.strip! }
+
+          # Regex to capture the name and number from "Bob Jones (1)"
+          trainer_with_foot_note_regex=/^(.*) \((\d*)\)$/
+
+          trainer = page_data["trainerNameHeader"]
+          location = page_data["locationNameHeader"]
+          room = page_data["resourceNameHeader"]
+          start_time = page_data["startTimeHeader"]
+          class_name = page_data["classNameHeader"]
+          duration = page_data["durationHeader"]
+
+          # Do all the transformations
+          # Check for a mark in the trainer text indication a substitue teacher
+          if reg_result = trainer.match(trainer_with_foot_note_regex)
+            sub = true
+            trainer = "#{reg_result[1]} (sub)"
+            trainer_with_sub_info = "#{reg_result[1]} (subbing for #{subs[reg_result[2]]})"
+          else
+            sub = false
+            trainer_with_sub_info = trainer
+          end
+          class_name_with_sub_mark = class_name + (sub ? '*' : '')
           # Combine the date and class time
-          yoga_class['start_date'] = start_date = Time.parse(day_text+" "+start_time)
+          start_date = Time.parse(day_text+" "+start_time)
           # Add the duration seconds to get the end time
-          yoga_class["end_date"] = start_date + convert_string_to_seconds(yoga_class["durationHeader"])
+          end_date = start_date + convert_string_to_seconds(duration)
           # Make a uid that won't change unless the class info changes
           uid = start_date.strftime("%Y%m%dT%H%M%S")+class_name.gsub(/[^\w]/,'')+trainer.gsub(/[^\w]/,'')
-          yoga_class["description"] = "#{class_name} @ #{start_time},#{trainer.empty? ? "" : " with "+trainer}#{location.empty? ? "" : " at the "+location+" location"}#{room.empty? ? "" : " in the "+room}."
+          description = "#{class_name} @ #{start_time}," +
+                        "#{trainer.empty? ? "" : " with "+trainer_with_sub_info}" +
+                        "#{location.empty? ? "" : " at the "+location+" location"}" +
+                        "#{room.empty? ? "" : " in the "+room}."
+
           # Add the class hash to the aggregate hash
-          @all_yoga_classes[uid] = yoga_class
+          @all_yoga_classes[uid] = {
+            'location' => location,
+            'room' => room,
+            'start_time' => start_time,
+            "description" => description,
+            'trainer' => trainer,
+            'sub' => sub,
+            'class_name' => class_name,
+            'trainer_with_sub_info' => trainer_with_sub_info,
+            'class_name_with_sub_mark' => class_name_with_sub_mark,
+            'start_date' => start_date,
+            'end_date' => end_date
+          }
         end
       end
     end

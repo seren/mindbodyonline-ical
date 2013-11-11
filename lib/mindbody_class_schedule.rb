@@ -79,16 +79,16 @@ class MindbodyClassSchedule
     end
 
     # Use a generic created date since we don't know
-    now = Time.parse("2013-01-01").strftime("%Y%m%dT%H%M%S")
+    now = Time.parse('2013-01-01').strftime('%Y%m%dT%H%M%S')
     @all_yoga_classes.each do |k,v|
       event = cal.event
-      event.start = v['start_date'].strftime("%Y%m%dT%H%M%S")
-      event.end = v["end_date"].strftime("%Y%m%dT%H%M%S")
-      event.summary = v["classNameHeader"]
+      event.start = v['start_date'].strftime('%Y%m%dT%H%M%S')
+      event.end = v['end_date'].strftime('%Y%m%dT%H%M%S')
+      event.summary = v["class_name_with_sub_mark"]
   #    event.summary = v["classNameHeader"] + (v["trainer"].empty? ? "" : " ("+v["trainer"]+")")
-      event.description = v["description"]
-      event.location = v["locationNameHeader"]
-      event.klass = "PUBLIC"
+      event.description = v['description']
+      event.location = v['location']
+      event.klass = 'PUBLIC'
       event.created = now
       event.last_modified = now
       event.uid = k
@@ -100,19 +100,7 @@ class MindbodyClassSchedule
   end
 
   def print_html
-    string = []
-    @all_yoga_classes.each do |k,v|
-      string << class_start = v['start_date'].strftime("%Y%m%dT%H%M%S")
-      string << class_end = v["end_date"].strftime("%Y%m%dT%H%M%S")
-      string << summary = v["classNameHeader"]
-  #   string << summary = v["classNameHeader"] + (v["trainer"].empty? ? "" : " ("+v["trainer"]+")")
-      string << description = v["description"]
-      string << location = v["locationNameHeader"]
-      string << klass = "PUBLIC"
-      string << uid = k
-      string << ""
-    end
-    string.join("<br>\n")
+    puts "none yet"
   end
 
   def cache_out_of_date?

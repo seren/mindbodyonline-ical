@@ -8,7 +8,7 @@ class MindbodyClassSchedule
   CACHE_DIR = "/tmp/cache"
   CACHE_VALID_HOURS = 6
 
-  WEEKS_TO_LOAD = 2
+  WEEKS_TO_LOAD = 3
 
   def initialize(opt={})
     @studio_id = opt[:studio_id]

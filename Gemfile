@@ -1,0 +1,8 @@
+source 'https://rubygems.org'
+gem 'nokogiri'
+#gem 'mechanize', '= 2.5.1'
+gem 'mechanize'
+#gem 'sinatra', '= 1.3.4'
+gem 'sinatra'
+gem 'icalendar'
+gem 'json'

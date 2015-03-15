@@ -68,7 +68,7 @@ class MindbodyReader
   end
 
   def generate_schedule_hash_from_current_page
-    # We could probably do our processing with mechanize as well  
+    # We could probably do our processing with mechanize as well
     data = Nokogiri::HTML(body_html)
     header = data.css('tr[class="floatingHeaderRow"]')
     total_columns = data.css('tr[class="floatingHeaderRow"] th').count
@@ -105,62 +105,52 @@ class MindbodyReader
           # Get an array of text from the cells
           values = r.css('td').map { |v| v.text }
           # Merge the cell text into a hash with the column headers as keys
-          page_data = Hash[*column_names.zip(values).flatten]
+          yoga_class = Hash[*column_names.zip(values).flatten]
           # Get rid of weird characters that are in the cell text
-          page_data.each { |k,v| v.gsub!(/[^a-zA-Z0-9:;\-_#\@\(\)]/," ") }
-          page_data.each { |k,v| v.strip! }
+          yoga_class.each { |k,v| v.gsub!(/[^a-zA-Z0-9:;\-_#\@\(\)]/," ") }
+          yoga_class.each { |k,v| v.strip! }
 
           # Regex to capture the name and number from "Bob Jones (1)"
           trainer_with_foot_note_regex=/^(.*) \((\d*)\)$/
 
-          trainer = page_data["trainerNameHeader"]
-          location = page_data["locationNameHeader"]
-          room = page_data["resourceNameHeader"]
-          start_time = page_data["startTimeHeader"]
-          class_name = page_data["classNameHeader"]
-          duration = page_data["durationHeader"]
-
           # Do all the transformations
-          # Check for a mark in the trainer text indication a substitue teacher
+          trainer = yoga_class["trainerNameHeader"]
           if reg_result = trainer.match(trainer_with_foot_note_regex)
-            sub = true
-            trainer = "#{reg_result[1]} (sub)"
-            trainer_with_sub_info = "#{reg_result[1]} (subbing for #{subs[reg_result[2]]})"
+            yoga_class['sub'] = sub = true
+            yoga_class['trainer'] = trainer = "#{reg_result[1]} (sub)"
+            yoga_class['trainer_with_sub_info'] = trainer_with_sub_info = "#{reg_result[1]} (subbing for #{subs[reg_result[2]]})"
           else
-            sub = false
-            trainer_with_sub_info = trainer
+            yoga_class['sub'] = sub = false
+            yoga_class['trainer'] = yoga_class['trainer_with_sub_info'] = trainer_with_sub_info = trainer
           end
-          class_name_with_sub_mark = class_name + (sub ? '*' : '')
+          yoga_class['class_name'] = class_name = yoga_class["classNameHeader"]
+          yoga_class['class_name_with_sub_mark'] = class_name + (sub ? '*' : '')
+          yoga_class['location'] = location = yoga_class["locationNameHeader"]
+          yoga_class['room'] = room = yoga_class["resourceNameHeader"]
+          yoga_class['start_time'] = start_time = yoga_class["startTimeHeader"]
           # Combine the date and class time
-          start_date = Time.parse(day_text+" "+start_time)
+          yoga_class['start_date'] = start_date = Time.parse(day_text+" "+start_time)
           # Add the duration seconds to get the end time
-          end_date = start_date + convert_string_to_seconds(duration)
+          yoga_class['end_date'] = start_date + convert_string_to_seconds(yoga_class["durationHeader"])
           # Make a uid that won't change unless the class info changes
           uid = start_date.strftime("%Y%m%dT%H%M%S")+class_name.gsub(/[^\w]/,'')+trainer.gsub(/[^\w]/,'')
-          description = "#{class_name} @ #{start_time}," +
-                        "#{trainer.empty? ? "" : " with "+trainer_with_sub_info}" +
-                        "#{location.empty? ? "" : " at the "+location+" location"}" +
-                        "#{room.empty? ? "" : " in the "+room}."
+          yoga_class["description"] = "#{class_name} @ #{start_time}," +
+                                      "#{trainer.empty? ? "" : " with "+trainer_with_sub_info}" +
+                                      "#{location.empty? ? "" : " at the "+location+" location"}" +
+                                      "#{room.empty? ? "" : " in the "+room}."
 
           # Add the class hash to the aggregate hash
-          @all_yoga_classes[uid] = {
-            'location' => location,
-            'room' => room,
-            'start_time' => start_time,
-            "description" => description,
-            'trainer' => trainer,
-            'sub' => sub,
-            'class_name' => class_name,
-            'trainer_with_sub_info' => trainer_with_sub_info,
-            'class_name_with_sub_mark' => class_name_with_sub_mark,
-            'start_date' => start_date,
-            'end_date' => end_date
-          }
+          @all_yoga_classes[uid] = yoga_class
         end
       end
     end
     return @all_yoga_classes
   end
+
+  def transform_calendar_data(day_text, yoga_class)
+  end
+
+
 
   # Converts "1 hour & 15 minutes" and "2 hours" style time into seconds
   def convert_string_to_seconds(str)
@@ -178,6 +168,3 @@ class MindbodyReader
     # return duration_seconds
     return str.gsub(/hours?/,'3600').gsub(/minutes?/,'60').gsub(/[^\w]/," ").split(" ").map{ |x| x.to_i }.each_slice(2).to_a.reduce(0) { |sum,x| sum + (x[0] * x[1]) }
   end
-
-
-end

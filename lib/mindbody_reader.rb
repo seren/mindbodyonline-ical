@@ -168,3 +168,5 @@ class MindbodyReader
     # return duration_seconds
     return str.gsub(/hours?/,'3600').gsub(/minutes?/,'60').gsub(/[^\w]/," ").split(" ").map{ |x| x.to_i }.each_slice(2).to_a.reduce(0) { |sum,x| sum + (x[0] * x[1]) }
   end
+
+end

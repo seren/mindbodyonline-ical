@@ -12,12 +12,13 @@ class MindbodyReader
   end
 
   def refresh
+# binding.pry
     # get fresh data
     # The urls we need to hit
     url_base = "https://clients.mindbodyonline.com"
     url1 = url_base + "/ws.asp?studioid=" + studio_id + "&stype=-7&sView=week&sLoc=0"
     url2 = url_base + "/ASP/home.asp?studioid=" + studio_id
-    url3 = url_base + "/asp/main_class.asp"
+    # url3 = url_base + "/asp/main_class.asp"
 
     # Pretend to be Safari and grab the frame url with the schedule table
     a = Mechanize.new
@@ -31,7 +32,7 @@ class MindbodyReader
     frame_url = frame2.href
 
     # Get first calendar page
-    @current_page = a.get(url_base+"/ASP/"+frame_url)
+    @current_page = a.get(url_base+frame_url)
     generate_schedule_hash_from_current_page
   end
 

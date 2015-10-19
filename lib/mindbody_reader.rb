@@ -97,7 +97,7 @@ class MindbodyReader
     @all_yoga_classes = {}
     # Run through the rows, grabbing the day info and the class info
     all_rows.each do |r|
-      # If there's only one td with the header class, it's a day row
+      # If there's only one td with the header class, it's a day row, not a class row
       if r.css('td[class="header"]').count == 1
         day_text = r.css('td[class="header"]').text
       else
@@ -111,7 +111,7 @@ class MindbodyReader
           yoga_class.each { |k,v| v.gsub!(/[^a-zA-Z0-9:;\-_#\@\(\)]/," ") }
           yoga_class.each { |k,v| v.strip! }
 
-          # Regex to capture the name and number from "Bob Jones (1)"
+          # Regex to capture the name and number from, for example, "Bob Jones (1)"
           trainer_with_foot_note_regex=/^(.*) \((\d*)\)$/
 
           # Do all the transformations

@@ -37,7 +37,7 @@ get '/mindbodyonline' do
     "Bad"
   end
 
-  # 
+  #
   if studio_id.nil? || studio_id.empty? || studio_id != "4095"
     "Nope"
   else

@@ -97,7 +97,7 @@ class MindbodyReader
     @all_yoga_classes = {}
     # Run through the rows, grabbing the day info and the class info
     all_rows.each do |r|
-      # If there's only one td with the header class, it's a day row
+      # If there's only one td with the header class, it's a day row, not a class row
       if r.css('td[class="header"]').count == 1
         day_text = r.css('td[class="header"]').text
       else
@@ -111,7 +111,7 @@ class MindbodyReader
           yoga_class.each { |k,v| v.gsub!(/[^a-zA-Z0-9:;\-_#\@\(\)]/," ") }
           yoga_class.each { |k,v| v.strip! }
 
-          # Regex to capture the name and number from "Bob Jones (1)"
+          # Regex to capture the name and number from, for example, "Bob Jones (1)"
           trainer_with_foot_note_regex=/^(.*) \((\d*)\)$/
 
           # Do all the transformations
@@ -133,12 +133,16 @@ class MindbodyReader
           yoga_class['start_date'] = start_date = Time.parse(day_text+" "+start_time)
           # Add the duration seconds to get the end time
           yoga_class['end_date'] = start_date + convert_string_to_seconds(yoga_class["durationHeader"])
+          # Add a signup link, if it exists
+          yoga_class['link'] = link = yoga_class["signUpNowHeader"]
           # Make a uid that won't change unless the class info changes
           uid = start_date.strftime("%Y%m%dT%H%M%S")+class_name.gsub(/[^\w]/,'')+trainer.gsub(/[^\w]/,'')
           yoga_class["description"] = "#{class_name} @ #{start_time}," +
                                       "#{trainer.empty? ? "" : " with "+trainer_with_sub_info}" +
                                       "#{location.empty? ? "" : " at the "+location+" location"}" +
-                                      "#{room.empty? ? "" : " in the "+room}."
+                                      "#{room.empty? ? "" : " in the "+room}." +
+                                      "#{link.empty? ? "" : " "+link}"
+
 
           # Add the class hash to the aggregate hash
           @all_yoga_classes[uid] = yoga_class

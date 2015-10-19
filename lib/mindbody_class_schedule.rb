@@ -82,6 +82,9 @@ class MindbodyClassSchedule
     now = DateTime.parse('2013-01-01')
     @all_yoga_classes.each do |k,v|
       event = cal.event
+      event.uid = k
+      event.created = now
+      event.last_modified = now
       event.dtstart = v['start_date']
       event.dtend = v['end_date']
       event.summary = v["class_name_with_sub_mark"]
@@ -89,9 +92,6 @@ class MindbodyClassSchedule
       event.description = v['description']
       event.location = v['location']
       event.ip_class = 'PUBLIC'
-      event.created = now
-      event.last_modified = now
-      event.uid = k
     end
 
     # Output the ical calendar

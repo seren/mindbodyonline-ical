@@ -1,6 +1,8 @@
 require 'nokogiri'
 require 'mechanize'
 
+
+# Scrapes the mindbodyonline website and converts content into objects we can use (eg. @all_yoga_classes)
 class MindbodyReader
 
   attr_accessor :studio_id, :current_page

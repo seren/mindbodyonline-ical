@@ -1,6 +1,7 @@
 require 'icalendar'
 require 'json'
 
+# Produces ical output based on objects read from cache or produced by the reader class
 class MindbodyClassSchedule
 
   attr_accessor :all_yoga_classes, :studio_id
@@ -13,6 +14,7 @@ class MindbodyClassSchedule
   def initialize(opt={})
     @studio_id = opt[:studio_id]
     @cache_file = File.join(CACHE_DIR,studio_id.to_s)
+    # flush_cache
   end
 
   def load

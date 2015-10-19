@@ -47,10 +47,10 @@ class MindbodyClassSchedule
   # We convert dates back to Time objects from the integer (unix timestamp) form that we store in json
   def read_cache
     @all_yoga_classes = JSON.parse(File.read(@cache_file))
-    # convert date strings to time objects
+    # convert date strings to datetime objects
     @all_yoga_classes.each do |k,v|
-      @all_yoga_classes[k]['start_date'] = Time.at(v['start_date'])
-      @all_yoga_classes[k]['end_date'] = Time.at(v['end_date'])
+      @all_yoga_classes[k]['start_date'] = DateTime.parse(Time.at(v['start_date']).to_s)
+      @all_yoga_classes[k]['end_date'] = DateTime.parse(Time.at(v['end_date']).to_s)
     end
   end
 
@@ -59,36 +59,36 @@ class MindbodyClassSchedule
     cal = Icalendar::Calendar.new
 
     # Set the timezone to Pacific
-    cal.timezone do
-      timezone_id             "America/Los_Angeles"
-      x_lic_location "America/Los_Angeles"
-      daylight do
-          timezone_offset_from  "-0800"
-          timezone_offset_to    "-0700"
-          timezone_name         "PDT"
-          dtstart               "19700308TO20000"
-          add_recurrence_rule   "FREQ=YEARLY;BYMONTH=3;BYDAY=2SU"
+    cal.timezone do |t|
+      t.tzid             = "America/Los_Angeles"
+      t.x_lic_location   = "America/Los_Angeles"
+      t.daylight do |d|
+          d.tzoffsetfrom = "-0800"
+          d.tzoffsetto   = "-0700"
+          d.tzname       = "PDT"
+          d.dtstart      = "19700308T020000"
+          d.rrule        = "FREQ=YEARLY;BYMONTH=3;BYDAY=2SU"
       end
-      standard do
-          timezone_offset_from  "-0700"
-          timezone_offset_to    "-0800"
-          timezone_name         "PST"
-          dtstart               "19701101T020000"
-          add_recurrence_rule   "FREQ=YEARLY;BYMONTH=11;BYDAY=1SU"
+      t.standard do |s|
+          s.tzoffsetfrom = "-0700"
+          s.tzoffsetto   = "-0800"
+          s.tzname       = "PST"
+          s.dtstart      = "19701101T020000"
+          s.rrule        = "FREQ=YEARLY;BYMONTH=11;BYDAY=1SU"
       end
     end
 
     # Use a generic created date since we don't know
-    now = Time.parse('2013-01-01').strftime('%Y%m%dT%H%M%S')
+    now = DateTime.parse('2013-01-01')
     @all_yoga_classes.each do |k,v|
       event = cal.event
-      event.start = v['start_date'].strftime('%Y%m%dT%H%M%S')
-      event.end = v['end_date'].strftime('%Y%m%dT%H%M%S')
+      event.dtstart = v['start_date']
+      event.dtend = v['end_date']
       event.summary = v["class_name_with_sub_mark"]
   #    event.summary = v["classNameHeader"] + (v["trainer"].empty? ? "" : " ("+v["trainer"]+")")
       event.description = v['description']
       event.location = v['location']
-      event.klass = 'PUBLIC'
+      event.ip_class = 'PUBLIC'
       event.created = now
       event.last_modified = now
       event.uid = k

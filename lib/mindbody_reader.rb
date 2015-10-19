@@ -135,16 +135,12 @@ class MindbodyReader
           yoga_class['start_date'] = start_date = Time.parse(day_text+" "+start_time)
           # Add the duration seconds to get the end time
           yoga_class['end_date'] = start_date + convert_string_to_seconds(yoga_class["durationHeader"])
-          # Add a signup link, if it exists
-          yoga_class['link'] = link = yoga_class["signUpNowHeader"]
           # Make a uid that won't change unless the class info changes
           uid = start_date.strftime("%Y%m%dT%H%M%S")+class_name.gsub(/[^\w]/,'')+trainer.gsub(/[^\w]/,'')
           yoga_class["description"] = "#{class_name} @ #{start_time}," +
                                       "#{trainer.empty? ? "" : " with "+trainer_with_sub_info}" +
                                       "#{location.empty? ? "" : " at the "+location+" location"}" +
-                                      "#{room.empty? ? "" : " in the "+room}." +
-                                      "#{link.empty? ? "" : " "+link}"
-
+                                      "#{room.empty? ? "" : " in the "+room}."
 
           # Add the class hash to the aggregate hash
           @all_yoga_classes[uid] = yoga_class
